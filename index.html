@@ -3,21 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Control - Management System</title>
+    <title>Stock Control - Management System Pro</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f7f6; display: flex; justify-content: center; padding: 20px; }
-        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
-        h2 { color: #2c3e50; text-align: center; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
+        h2, h3 { color: #2c3e50; text-align: center; margin-top: 0; }
+        .section-box { background: #f8f9fa; padding: 15px; border-radius: 10px; border: 1px solid #e9ecef; margin-bottom: 20px; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        .flex-row { display: flex; gap: 8px; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 5px; }
         .btn-primary { background: #007bff; color: white; }
+        .btn-add { background: #28a745; color: white; width: 80px; }
         .hidden { display: none; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; font-size: 14px; }
         th, td { border-bottom: 1px solid #eee; padding: 12px; text-align: left; }
+        th { background-color: #f1f3f5; }
+        .small-text { font-size: 11px; color: #6c757d; display: block; }
     </style>
 </head>
 <body>
@@ -28,19 +33,53 @@
     <div id="loginSection">
         <input type="email" id="loginEmail" placeholder="Email (ví dụ: admin@gmail.com)">
         <input type="password" id="loginPassword" placeholder="Mật khẩu">
-        <button class="btn-primary" onclick="login()">Đăng nhập</button>
+        <button class="btn-primary" onclick="login()">Đăng nhập hệ thống</button>
     </div>
 
     <div id="mainSection" class="hidden">
-        <p id="userDisplay" style="font-size: 0.8em; color: gray;"></p>
-        <input type="text" id="itemName" placeholder="Tên sản phẩm">
-        <input type="number" id="itemQty" placeholder="Số lượng">
-        <button class="btn-primary" onclick="updateStock()">Cập nhật kho</button>
-        <button onclick="logout()" style="background:#eee; color: #333;">Đăng xuất</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <p id="userDisplay" style="font-size: 0.8em; color: gray; margin: 0;"></p>
+            <button onclick="logout()" style="width: auto; padding: 5px 15px; margin: 0; background:#dc3545; color: white;">Thoát</button>
+        </div>
+
+        <div class="section-box">
+            <h3>Thiết lập hệ thống</h3>
+            <div class="flex-row">
+                <input type="text" id="newCategory" placeholder="Tên danh mục mới">
+                <button class="btn-add" onclick="addSetting('categories', 'newCategory')">Thêm</button>
+            </div>
+            <div class="flex-row">
+                <input type="text" id="newSupplier" placeholder="Tên nhà cung cấp">
+                <button class="btn-add" onclick="addSetting('suppliers', 'newSupplier')">Thêm</button>
+            </div>
+            <div class="flex-row">
+                <input type="text" id="newUnit" placeholder="Đơn vị tính (Kg, Cái...)">
+                <button class="btn-add" onclick="addSetting('units', 'newUnit')">Thêm</button>
+            </div>
+        </div>
+
+        <div class="section-box" style="background: #fff3cd; border-color: #ffeeba;">
+            <h3>Nhập kho sản phẩm</h3>
+            <input type="text" id="itemName" placeholder="Tên sản phẩm">
+            
+            <div class="flex-row">
+                <select id="itemCategory"><option value="">-- Danh mục --</option></select>
+                <select id="itemUnit"><option value="">-- Đơn vị --</option></select>
+            </div>
+            
+            <select id="itemSupplier"><option value="">-- Nhà cung cấp --</option></select>
+            <input type="number" id="itemQty" placeholder="Số lượng nhập">
+            
+            <button class="btn-primary" onclick="updateStock()">CẬP NHẬT VÀO KHO</button>
+        </div>
 
         <table>
             <thead>
-                <tr><th>Sản phẩm</th><th>Số lượng</th></tr>
+                <tr>
+                    <th>Sản phẩm</th>
+                    <th>Số lượng</th>
+                    <th>Nhà cung cấp</th>
+                </tr>
             </thead>
             <tbody id="inventoryBody"></tbody>
         </table>
@@ -62,73 +101,5 @@
     const auth = firebase.auth();
     const db = firebase.database();
     
-    // Hàm theo dõi trạng thái đăng nhập
     auth.onAuthStateChanged(user => {
         const loginSection = document.getElementById('loginSection');
-        const mainSection = document.getElementById('mainSection');
-        const userDisplay = document.getElementById('userDisplay');
-
-        if (user) {
-            loginSection.classList.add('hidden');
-            mainSection.classList.remove('hidden');
-            userDisplay.innerText = "Đang đăng nhập: " + user.email;
-            loadInventory();
-        } else {
-            loginSection.classList.remove('hidden');
-            mainSection.classList.add('hidden');
-        }
-    });
-
-    // Hàm xử lý Đăng nhập Email
-    function login() {
-        const email = document.getElementById('loginEmail').value;
-        const pass = document.getElementById('loginPassword').value;
-
-        if (!email || !pass) {
-            alert("Vui lòng nhập đầy đủ Email và Mật khẩu!");
-            return;
-        }
-
-        auth.signInWithEmailAndPassword(email, pass)
-            .then(() => {
-                console.log("Đăng nhập thành công!");
-            })
-            .catch((error) => {
-                alert("Lỗi: " + error.message);
-            });
-    }
-
-    // Cập nhật dữ liệu lên Firebase
-    function updateStock() {
-        const name = document.getElementById('itemName').value;
-        const qty = document.getElementById('itemQty').value;
-        if(name && qty) { 
-            db.ref('inventory/' + name).set({ 
-                quantity: parseInt(qty) 
-            }).then(() => {
-                document.getElementById('itemName').value = '';
-                document.getElementById('itemQty').value = '';
-            }); 
-        } else {
-            alert("Vui lòng nhập tên và số lượng!");
-        }
-    }
-
-    // Tải dữ liệu từ Firebase về bảng
-    function loadInventory() {
-        db.ref('inventory/').on('value', snapshot => {
-            const data = snapshot.val();
-            const tbody = document.getElementById('inventoryBody');
-            tbody.innerHTML = '';
-            for(let key in data) {
-                tbody.innerHTML += `<tr><td>${key}</td><td>${data[key].quantity}</td></tr>`;
-            }
-        });
-    }
-
-    function logout() { 
-        auth.signOut(); 
-    }
-</script>
-</body>
-</html>
