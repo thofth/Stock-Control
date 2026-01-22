@@ -1,134 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Control - Management System</title>
-    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
-    
-    <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f7f6; display: flex; justify-content: center; padding: 20px; }
-        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
-        h2 { color: #2c3e50; text-align: center; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px; }
-        .btn-primary { background: #007bff; color: white; }
-        .hidden { display: none; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border-bottom: 1px solid #eee; padding: 12px; text-align: left; }
-    </style>
+    <title>Đăng nhập | Hệ thống Quản lý Tồn kho</title>
+    <!-- Liên kết đến file CSS ngoài -->
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
-<div class="container">
-    <h2>Stock Control</h2>
-
-    <div id="loginSection">
-        <input type="email" id="loginEmail" placeholder="Email (ví dụ: admin@gmail.com)">
-        <input type="password" id="loginPassword" placeholder="Mật khẩu">
-        <button class="btn-primary" onclick="login()">Đăng nhập</button>
+    <div class="login-container">
+        <h2>Đăng nhập Hệ thống Tồn kho</h2>
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" placeholder="Nhập email của bạn" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Mật khẩu:</label>
+            <input type="password" id="password" placeholder="Nhập mật khẩu của bạn" required>
+        </div>
+        <button id="loginButton" class="login-button">Đăng nhập</button>
+        <p id="errorMessage" class="error-message"></p>
     </div>
 
-    <div id="mainSection" class="hidden">
-        <p id="userDisplay" style="font-size: 0.8em; color: gray;"></p>
-        <input type="text" id="itemName" placeholder="Tên sản phẩm">
-        <input type="number" id="itemQty" placeholder="Số lượng">
-        <button class="btn-primary" onclick="updateStock()">Cập nhật kho</button>
-        <button onclick="logout()" style="background:#eee; color: #333;">Đăng xuất</button>
-
-        <table>
-            <thead>
-                <tr><th>Sản phẩm</th><th>Số lượng</th></tr>
-            </thead>
-            <tbody id="inventoryBody"></tbody>
-        </table>
-    </div>
-</div>
-
-<script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyBBoGmr-8hL-u1zIAfF5WI8V-hPUBCwNMg",
-        authDomain: "stock-control-662ca.firebaseapp.com",
-        databaseURL: "https://stock-control-662ca-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "stock-control-662ca",
-        storageBucket: "stock-control-662ca.firebasestorage.app",
-        messagingSenderId: "835786483606",
-        appId: "1:835786483606:web:01ce4d5f1fa425a7cadfb7"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.database();
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.0/firebase-database-compat.js"></script>
     
-    // Hàm theo dõi trạng thái đăng nhập
-    auth.onAuthStateChanged(user => {
-        const loginSection = document.getElementById('loginSection');
-        const mainSection = document.getElementById('mainSection');
-        const userDisplay = document.getElementById('userDisplay');
-
-        if (user) {
-            loginSection.classList.add('hidden');
-            mainSection.classList.remove('hidden');
-            userDisplay.innerText = "Đang đăng nhập: " + user.email;
-            loadInventory();
-        } else {
-            loginSection.classList.remove('hidden');
-            mainSection.classList.add('hidden');
-        }
-    });
-
-    // Hàm xử lý Đăng nhập Email
-    function login() {
-        const email = document.getElementById('loginEmail').value;
-        const pass = document.getElementById('loginPassword').value;
-
-        if (!email || !pass) {
-            alert("Vui lòng nhập đầy đủ Email và Mật khẩu!");
-            return;
-        }
-
-        auth.signInWithEmailAndPassword(email, pass)
-            .then(() => {
-                console.log("Đăng nhập thành công!");
-            })
-            .catch((error) => {
-                alert("Lỗi: " + error.message);
-            });
-    }
-
-    // Cập nhật dữ liệu lên Firebase
-    function updateStock() {
-        const name = document.getElementById('itemName').value;
-        const qty = document.getElementById('itemQty').value;
-        if(name && qty) { 
-            db.ref('inventory/' + name).set({ 
-                quantity: parseInt(qty) 
-            }).then(() => {
-                document.getElementById('itemName').value = '';
-                document.getElementById('itemQty').value = '';
-            }); 
-        } else {
-            alert("Vui lòng nhập tên và số lượng!");
-        }
-    }
-
-    // Tải dữ liệu từ Firebase về bảng
-    function loadInventory() {
-        db.ref('inventory/').on('value', snapshot => {
-            const data = snapshot.val();
-            const tbody = document.getElementById('inventoryBody');
-            tbody.innerHTML = '';
-            for(let key in data) {
-                tbody.innerHTML += `<tr><td>${key}</td><td>${data[key].quantity}</td></tr>`;
-            }
-        });
-    }
-
-    function logout() { 
-        auth.signOut(); 
-    }
-</script>
+    <!-- Custom login script -->
+    <script src="login.js"></script>
 </body>
 </html>
